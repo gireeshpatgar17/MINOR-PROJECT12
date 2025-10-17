@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Candidates Panel</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="module">window.__importSupabase = async () => (await import('https://esm.sh/@supabase/supabase-js@2')).createClient;</script>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #e5e7eb; }
+    .container { max-width: 1100px; margin: 16px auto; padding: 0 16px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; }
+    .btn { padding: 8px 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    input { padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; width: 100%; }
+    label { font-size: 12px; color: #374151; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .card { border:1px solid #e5e7eb; border-radius:8px; padding:12px; background:#fff; margin-bottom:12px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const SUPABASE_URL = 'https://ogbykbxfralllvyukpuk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE';
+
+    function Header() {
+      return (
+        <header>
+          <div>
+            <strong>Candidates Panel</strong>
+            <div className="muted">Manage candidates</div>
+          </div>
+          <div>
+            <button className="btn" onClick={() => (window.location.href = 'admin.html')}>Back to Admin</button>
+          </div>
+        </header>
+      );
+    }
+
+    function Form({ value, onChange, onSubmit, onCancel, saving }) {
+      return (
+        <div className="card">
+          <div className="row">
+            <div style={{ flex: 1 }}>
+              <label>Candidate Name</label>
+              <input value={value.candidate_name} onChange={e => onChange({ ...value, candidate_name: e.target.value })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Party Name</label>
+              <input value={value.party_name} onChange={e => onChange({ ...value, party_name: e.target.value })} />
+            </div>
+          </div>
+          <div className="row">
+            <div style={{ flex: 1 }}>
+              <label>Symbol URL</label>
+              <input value={value.symbol_url} onChange={e => onChange({ ...value, symbol_url: e.target.value })} placeholder="https://..." />
+            </div>
+          </div>
+          <div className="row">
+            <button className="btn" onClick={onCancel}>Cancel</button>
+            <button className="btn" onClick={onSubmit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+          </div>
+        </div>
+      );
+    }
+
+    function Panel() {
+      const [list, setList] = React.useState([]);
+      const [loading, setLoading] = React.useState(false);
+      const [error, setError] = React.useState(null);
+      const [editing, setEditing] = React.useState(null);
+      const [draft, setDraft] = React.useState({ candidate_name: '', party_name: '', symbol_url: '' });
+
+      const client = React.useMemo(() => ({ create: async () => {
+        const createClient = await window.__importSupabase();
+        return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }}), []);
+
+      const validate = (v) => {
+        if (!v.candidate_name) return 'Candidate name is required';
+        if (!v.party_name) return 'Party name is required';
+        if (!v.symbol_url) return 'Symbol URL is required';
+        return null;
+      };
+
+      const load = React.useCallback(async () => {
+        setLoading(true); setError(null);
+        try {
+          const supabase = await client.create();
+          const { data, error } = await supabase.from('candidates').select('*').order('created_at', { ascending: false });
+          if (error) throw error;
+          setList(data || []);
+        } catch (e) { setError((e && e.message) ? e.message : 'Failed to load'); }
+        finally { setLoading(false); }
+      }, [client]);
+
+      React.useEffect(() => { load(); }, [load]);
+
+      const onSubmit = async () => {
+        const id = draft && draft.id;
+        const err = validate(draft);
+        if (err) { alert(err); return; }
+        setLoading(true);
+        try {
+          const supabase = await client.create();
+          if (id) {
+            const { error } = await supabase.from('candidates').update(draft).eq('id', id);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from('candidates').insert(draft);
+            if (error) throw error;
+          }
+          setDraft({ candidate_name: '', party_name: '', symbol_url: '' });
+          setEditing(null);
+          await load();
+        } catch (e) { alert((e && e.message) ? e.message : 'Failed to save'); }
+        finally { setLoading(false); }
+      };
+
+      const onEdit = (c) => {
+        setEditing(c);
+        setDraft({ id: c.id, candidate_name: c.candidate_name, party_name: c.party_name, symbol_url: c.symbol_url });
+      };
+
+      const onDelete = async (c) => {
+        if (!confirm('Archive this candidate?')) return;
+        setLoading(true);
+        try {
+          const supabase = await client.create();
+          const { error } = await supabase.from('candidates').delete().eq('id', c.id);
+          if (error) throw error;
+          await load();
+        } catch (e) { alert((e && e.message) ? e.message : 'Failed to archive'); }
+        finally { setLoading(false); }
+      };
+
+      return (
+        <>
+          <Header />
+          <div className="container">
+            <Form value={draft} onChange={setDraft} onSubmit={onSubmit} onCancel={() => { setEditing(null); setDraft({ candidate_name: '', party_name: '', symbol_url: '' }); }} saving={loading} />
+            <div className="card">
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <h3>Candidates</h3>
+                <button className="btn" onClick={load} disabled={loading}>Refresh</button>
+              </div>
+              {loading && <div className="muted">Loading…</div>}
+              {error && <div className="muted">{error}</div>}
+              <div style={{ overflowX:'auto' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th><th>Party</th><th>Symbol</th><th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {list.map(c => (
+                      <tr key={c.id}>
+                        <td>{c.candidate_name}</td>
+                        <td>{c.party_name}</td>
+                        <td><a href={c.symbol_url} target="_blank" rel="noreferrer">Link</a></td>
+                        <td>
+                          <button className="btn" onClick={() => onEdit(c)}>Edit</button>
+                          <button className="btn" onClick={() => onDelete(c)}>Archive</button>
+                        </td>
+                      </tr>
+                    ))}
+                    {(!loading && list.length === 0) && (
+                      <tr><td colSpan={4} className="muted">No candidates found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<Panel />);
+  </script>
+</body>
+</html>
+

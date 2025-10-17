@@ -1,0 +1,208 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #1f2a44;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  align-items: center;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="10" cy="60" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="90" cy="40" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  opacity: 0.3;
+  z-index: 0;
+}
+
+header {
+  background: rgba(11, 61, 145, 0.95);
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+  padding: 30px 20px;
+  text-align: center;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+h2 {
+  text-align: center;
+  margin-top: 30px;
+  color: #0b3d91;
+}
+
+.candidate-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 20px auto;
+  max-width: 1200px;
+  padding: 0 20px;
+}
+
+.candidate-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  margin: 15px;
+  padding: 30px 25px;
+  border-radius: 20px;
+  width: 280px;
+  text-align: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+.candidate-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(11, 61, 145, 0.05), rgba(30, 77, 114, 0.05));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.candidate-card:hover::before {
+  opacity: 1;
+}
+
+.candidate-card:hover {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.candidate-card button {
+  background: linear-gradient(135deg, #0b3d91, #1e4d72);
+  border: none;
+  padding: 15px 20px;
+  width: 100%;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 25px rgba(11, 61, 145, 0.3);
+  margin-top: 15px;
+}
+
+.candidate-card button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.candidate-card button:hover::before {
+  left: 100%;
+}
+
+.candidate-card button:hover {
+  background: linear-gradient(135deg, #093273, #0b3d91);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(11, 61, 145, 0.4);
+}
+
+.quote {
+  margin: 30px auto;
+  text-align: center;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: #34495e;
+  max-width: 600px;
+  padding: 0 20px;
+}
+
+
+.results-container {
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.result-bar-container {
+  margin: 15px 0;
+}
+
+.result-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #0b3d91;
+}
+
+.result-bar-bg {
+  width: 100%;
+  background: #e6eef9;
+  border-radius: 12px;
+  height: 25px;
+  overflow: hidden;
+}
+
+.result-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0b3d91, #3f6ab8);
+  width: 0%;
+  border-radius: 12px;
+  transition: width 1s ease-in-out;
+}
+
+
+.voted-btn {
+    background-color: #c7d6f2;
+    color: #445;
+    cursor: not-allowed;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.voted-btn:hover {
+    background-color: #b2dfdb; /* no hover change */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .candidate-list {
+    margin: 10px;
+    padding: 0 10px;
+  }
+  
+  .candidate-card {
+    width: 100%;
+    max-width: 300px;
+    margin: 10px;
+  }
+  
+  .quote {
+    margin: 20px 10px;
+    font-size: 1rem;
+  }
+  
+  header {
+    padding: 15px;
+  }
+}

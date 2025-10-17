@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Login</title>
+  <link rel="stylesheet" href="../css/auth.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="form-container">
+    <h2>User Login 🔑</h2>
+    
+    <!-- Role Display Section -->
+    <div class="role-display" style="text-align: center; margin: 15px 0; padding: 15px; background: #e6eef9; border-radius: 8px; border: 1px solid #c3c9d5;">
+      <strong style="color: #0b3d91;">Currently Logging in as: </strong>
+      <span id="currentRole" style="color: #0b3d91; font-weight: 600; text-transform: capitalize;"></span>
+      <br>
+      <small style="color: #666;">Not correct? <a href="role-selection.html" style="color: #0b3d91; font-weight: 600;">Change Role</a></small>
+    </div>
+
+    <form id="loginForm">
+      <input id="aadhaarOrMobile" type="text" placeholder="Aadhaar Number or Mobile" required>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <input id="otpInput" type="text" placeholder="Enter OTP" style="flex:1;">
+        <button type="button" id="sendOtpBtn">Send OTP</button>
+        <button type="button" id="verifyOtpBtn">Verify OTP</button>
+      </div>
+    </form>
+    <button id="connectWallet">Connect MetaMask</button>
+    <div id="walletStatus" style="margin: 10px 0; padding: 10px; border-radius: 6px; display: none;">
+      <small id="walletAddress"></small>
+    </div>
+    <p>Not registered? <a href="register.html">Register here</a></p>
+  </div>
+
+
+
+  <script src="../js/metamask.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    // Display the selected role
+    const userRole = sessionStorage.getItem('userRole') || 'voter';
+    const roleDisplay = userRole === 'admin' ? 'Administrator' : 'Voter';
+    document.getElementById('currentRole').textContent = roleDisplay;
+    
+    // Apply role-specific styling
+    const roleDisplayDiv = document.querySelector('.role-display');
+    if (userRole === 'admin') {
+      roleDisplayDiv.style.background = '#ffe6e6';
+      roleDisplayDiv.style.borderColor = '#b00020';
+    }
+  </script>
+</body>
+</html>

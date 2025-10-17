@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Select Your Role</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>🗳️ Decentralized Voting System</h1>
+  </header>
+
+  <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card">
+      <h2>Who are you? 👋</h2>
+      <p>Select your role to continue</p>
+      <div class="btn-group">
+        <button onclick="selectRole('voter')" class="role-btn voter-btn">
+          🗳️ I'm a Voter
+          <br><small>Cast your vote securely</small>
+        </button>
+        <button onclick="selectRole('admin')" class="role-btn admin-btn">
+          ⚙️ I'm an Admin
+          <br><small>Manage election process</small>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>⚡ Transparent • Secure • Blockchain-powered ⚡</p>
+  </footer>
+
+  <script>
+    function selectRole(role) {
+      // Store role in sessionStorage
+      sessionStorage.setItem('userRole', role);
+      
+      // Redirect to login page
+      if(role === 'voter') {
+        window.location.href = 'register.html';
+      } else if(role === 'admin') {
+      window.location.href = 'admin.html';
+      }
+    }
+  </script>
+</body>
+</html>
