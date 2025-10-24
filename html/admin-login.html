@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="../css/auth.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="form-container">
+    <h2>Admin Login ⚙️</h2>
+    
+    <form id="adminLoginForm">
+      <input type="text" id="loginId" placeholder="Admin ID or Name" required>
+      <input type="password" id="loginPassword" placeholder="Password" required>
+      
+      <button type="submit" id="loginBtn" style="width: 100%;">Login as Admin</button>
+    </form>
+    
+    <p>Don't have an account? <a href="admin-register.html">Register here</a></p>
+    <p>Not an admin? <a href="role-selection.html">Go back to role selection</a></p>
+  </div>
+
+
+  <script>
+    const SUPABASE_URL = 'https://ogbykbxfralllvyukpuk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE';
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        
+        const loginId = document.getElementById('loginId').value;
+        const password = document.getElementById('loginPassword').value;
+
+        if (!loginId || !password) {
+            alert("Please enter both Admin ID/Name and Password");
+            return;
+        }
+
+        const loginBtn = document.getElementById('loginBtn');
+        loginBtn.textContent = 'Logging in...';
+        loginBtn.disabled = true;
+
+        try {
+            // Dynamically import Supabase
+            const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+            const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            // Search for admin by admin_id OR full_name
+            const { data: admin, error } = await supabase
+                .from('admin_details')
+                .select('*')
+                .or(`admin_id.eq.${loginId},full_name.eq.${loginId}`)
+                .single();
+
+            if (error || !admin) {
+                alert("Invalid Admin ID/Name or Password");
+                return;
+            }
+
+            // In production, use proper password hashing comparison
+            if (admin.password !== password) {
+                alert("Invalid Admin ID/Name or Password");
+                return;
+            }
+
+            // Store admin session
+            sessionStorage.setItem('adminAuthenticated', 'true');
+            sessionStorage.setItem('adminId', admin.admin_id);
+            sessionStorage.setItem('adminName', admin.full_name);
+            sessionStorage.setItem('adminWallet', admin.wallet_address);
+
+            alert("Login successful! Redirecting to admin dashboard...");
+            window.location.href = "admin.html";
+
+        } catch (error) {
+            console.error('Login error:', error);
+            alert("Login failed: " + (error.message || "Unknown error"));
+        } finally {
+            loginBtn.textContent = 'Login as Admin';
+            loginBtn.disabled = false;
+        }
+    }
+
+    // Event listener
+    document.getElementById('adminLoginForm').addEventListener('submit', handleSubmit);
+  </script>
+</body>
+</html>

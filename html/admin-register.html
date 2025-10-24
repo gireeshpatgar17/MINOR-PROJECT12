@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Registration</title>
+  <link rel="stylesheet" href="../css/auth.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="form-container">
+    <h2>Admin Registration ⚙️</h2>
+    
+    <form id="adminRegisterForm">
+      <input type="text" id="organizationName" placeholder="Organization Name (Optional)">
+      <input type="text" id="fullName" placeholder="Full Name" required>
+      <input type="text" id="adminID" placeholder="Admin ID" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+      
+      <button type="button" id="connectWalletBtn" style="background: #f0f0f0; color: #333; border: 1px solid #ccc; width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; cursor: pointer;">
+        Connect MetaMask Wallet
+      </button>
+      
+      <div id="walletStatus" style="margin: 10px 0; padding: 10px; border-radius: 6px; display: none; background: #e6eef9; text-align: center;">
+        <small>Connected: <span id="walletAddress" style="font-family: monospace; font-weight: bold;"></span></small>
+      </div>
+
+      <button type="submit" id="registerBtn" style="width: 100%;">Register as Admin</button>
+    </form>
+    
+    <p>Already have an account? <a href="admin-login.html">Login here</a></p>
+    <p>Not an admin? <a href="role-selection.html">Go back to role selection</a></p>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://ogbykbxfralllvyukpuk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE';
+
+    let walletConnected = false;
+    let walletAddress = '';
+
+    async function connectWallet() {
+        if (typeof window.ethereum !== "undefined") {
+            try {
+                const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+                const account = accounts[0];
+                walletAddress = account;
+                walletConnected = true;
+                
+                document.getElementById('walletStatus').style.display = 'block';
+                document.getElementById('walletAddress').textContent = `${account.slice(0, 6)}...${account.slice(-4)}`;
+                document.getElementById('connectWalletBtn').textContent = 'Wallet Connected ✅';
+                document.getElementById('connectWalletBtn').style.background = '#e6f7e6';
+                document.getElementById('connectWalletBtn').style.color = '#2d5016';
+                document.getElementById('connectWalletBtn').style.borderColor = '#4caf50';
+                
+            } catch (err) {
+                alert("Wallet connection failed: " + err.message);
+            }
+        } else {
+            alert("MetaMask not installed! Please install it.");
+        }
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        
+        if (!walletConnected) {
+            alert("Please connect your MetaMask wallet first");
+            return;
+        }
+
+        const formData = {
+            organization_name: document.getElementById('organizationName').value,
+            full_name: document.getElementById('fullName').value,
+            admin_id: document.getElementById('adminID').value,
+            password: document.getElementById('password').value,
+            confirm_password: document.getElementById('confirmPassword').value,
+            wallet_address: walletAddress
+        };
+
+        // Validation
+        if (!formData.full_name || !formData.admin_id || !formData.password) {
+            alert("Please fill all required fields");
+            return;
+        }
+
+        if (formData.password !== formData.confirm_password) {
+            alert("Passwords do not match");
+            return;
+        }
+
+        if (formData.password.length < 6) {
+            alert("Password must be at least 6 characters long");
+            return;
+        }
+
+        const registerBtn = document.getElementById('registerBtn');
+        registerBtn.textContent = 'Registering...';
+        registerBtn.disabled = true;
+
+        try {
+            // Dynamically import Supabase
+            const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+            const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            // Check if admin ID already exists
+            const { data: existingAdmin, error: checkError } = await supabase
+                .from('admin_details')
+                .select('id')
+                .eq('admin_id', formData.admin_id)
+                .single();
+
+            if (existingAdmin) {
+                alert("Admin ID already exists. Please choose a different one.");
+                return;
+            }
+
+            if (checkError && checkError.code !== 'PGRST116') {
+                throw checkError;
+            }
+
+            // Insert new admin
+            const { data, error } = await supabase
+                .from('admin_details')
+                .insert([{
+                    organization_name: formData.organization_name || null,
+                    full_name: formData.full_name,
+                    admin_id: formData.admin_id,
+                    password: formData.password, // In production, hash this password
+                    wallet_address: formData.wallet_address,
+                    created_at: new Date().toISOString()
+                }])
+                .select();
+
+            if (error) throw error;
+
+            alert("Admin registration successful! Please login.");
+            window.location.href = "admin-login.html";
+
+        } catch (error) {
+            console.error('Registration error:', error);
+            alert("Registration failed: " + (error.message || "Unknown error"));
+        } finally {
+            registerBtn.textContent = 'Register as Admin';
+            registerBtn.disabled = false;
+        }
+    }
+
+    // Event listeners
+    document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
+    document.getElementById('adminRegisterForm').addEventListener('submit', handleSubmit);
+  </script>
+</body>
+</html>

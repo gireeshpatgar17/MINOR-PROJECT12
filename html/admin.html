@@ -24,6 +24,7 @@
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
     .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #fff; }
     .muted { color: #6b7280; font-size: 12px; }
+    .admin-info { background: #f0f9ff; padding: 8px 12px; border-radius: 6px; margin: 8px 0; }
   </style>
 </head>
 <body>
@@ -33,12 +34,22 @@
     const SUPABASE_URL = 'https://ogbykbxfralllvyukpuk.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE';
 
-    function Header({ onSignOut }) {
+    // Authentication check
+    const isAdminAuthenticated = sessionStorage.getItem('adminAuthenticated');
+    if (!isAdminAuthenticated) {
+        alert("Please login as admin first");
+        window.location.href = 'admin-login.html';
+    }
+
+    function Header({ onSignOut, adminName, adminId }) {
       return (
         <header>
           <div>
             <strong>Admin Dashboard</strong>
             <div className="muted">Blockchain Voting System</div>
+            <div className="admin-info">
+              <small>Logged in as: <strong>{adminName}</strong> (ID: {adminId})</small>
+            </div>
           </div>
           <nav className="actions">
             <button className="btn" onClick={() => alert('Profile coming soon')}>Profile</button>
@@ -52,12 +63,21 @@
       const [loading, setLoading] = React.useState(false);
       const [error, setError] = React.useState(null);
       const [candidates, setCandidates] = React.useState([]);
+      
+      // Get admin info from session storage
+      const adminName = sessionStorage.getItem('adminName') || 'Admin';
+      const adminId = sessionStorage.getItem('adminId') || 'N/A';
+      const adminWallet = sessionStorage.getItem('adminWallet') || 'Not connected';
 
-      const signOut = async () => {
-        const createClient = await window.__importSupabase();
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        await supabase.auth.signOut();
-        window.location.href = 'login.html';
+      const signOut = () => {
+        // Clear admin session
+        sessionStorage.removeItem('adminAuthenticated');
+        sessionStorage.removeItem('adminId');
+        sessionStorage.removeItem('adminName');
+        sessionStorage.removeItem('adminWallet');
+        
+        // Redirect to role selection
+        window.location.href = 'role-selection.html';
       };
 
       const load = React.useCallback(async () => {
@@ -79,8 +99,14 @@
 
       return (
         <>
-          <Header onSignOut={signOut} />
+          <Header onSignOut={signOut} adminName={adminName} adminId={adminId} />
           <div className="container">
+            <div className="admin-info" style={{ marginBottom: '20px' }}>
+              <strong>Admin Wallet:</strong> <span style={{ fontFamily: 'monospace' }}>{adminWallet}</span>
+              <br />
+              <small>This wallet will be used to fund voter accounts</small>
+            </div>
+
             <h2>Parties & Symbols</h2>
             {error && <div className="muted">{error}</div>}
             {loading && <div className="muted">Loading…</div>}
@@ -113,5 +139,3 @@
   </script>
 </body>
 </html>
-
-

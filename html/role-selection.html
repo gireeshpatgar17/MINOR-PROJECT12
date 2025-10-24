@@ -37,11 +37,11 @@
       // Store role in sessionStorage
       sessionStorage.setItem('userRole', role);
       
-      // Redirect to login page
+      // Redirect to appropriate authentication page
       if(role === 'voter') {
-        window.location.href = 'register.html';
+        window.location.href = 'login.html';
       } else if(role === 'admin') {
-      window.location.href = 'admin.html';
+        window.location.href = 'admin-login.html'; // Changed from admin.html to admin-login.html
       }
     }
   </script>
