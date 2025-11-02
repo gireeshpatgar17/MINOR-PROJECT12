@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://unpkg.com https://esm.sh blob:; object-src 'none';">
+  <title>Conduct Election</title>
+  <link rel="stylesheet" href="/css/candidates_panel.css">
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="module">
+    window.__importSupabase = async () => (await import('https://esm.sh/@supabase/supabase-js@2')).createClient;
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const SUPABASE_URL = 'https://ogbykbxfralllvyukpuk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE';
+
+    if (!sessionStorage.getItem('adminAuthenticated')) {
+      alert('Please login as admin first');
+      window.location.href = 'admin-login.html';
+    }
+
+    function PageHeader() {
+      return (
+        <header>
+          <div>
+            <strong>Conduct Election</strong>
+            <div className="muted">Set election metadata</div>
+          </div>
+          <div>
+            <button className="btn" onClick={() => (window.location.href = 'admin.html')}>Back to Admin</button>
+          </div>
+        </header>
+      );
+    }
+
+    function ConductElectionForm() {
+      const [electionName, setElectionName] = React.useState('');
+      const [startDate, setStartDate] = React.useState('');
+      const [endDate, setEndDate] = React.useState('');
+      const [submitting, setSubmitting] = React.useState(false);
+      const [message, setMessage] = React.useState('');
+      const [elections, setElections] = React.useState([]);
+      const [loading, setLoading] = React.useState(false);
+      const [error, setError] = React.useState(null);
+
+      const supabaseClientRef = React.useRef(null);
+      
+      const getSupabaseClient = React.useCallback(async () => {
+        if (!supabaseClientRef.current) {
+          const createClient = await window.__importSupabase();
+          supabaseClientRef.current = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+        return supabaseClientRef.current;
+      }, []);
+
+      const loadElections = React.useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const supabase = await getSupabaseClient();
+          const { data, error } = await supabase
+            .from('election_meta_with_status')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (error) throw error;
+          setElections(data || []);
+        } catch (e) {
+          setError(e && e.message ? e.message : 'Failed to load elections');
+        } finally {
+          setLoading(false);
+        }
+      }, [getSupabaseClient]);
+
+      React.useEffect(() => {
+        loadElections();
+      }, [loadElections]);
+
+      // Format date to IST 12-hour with AM/PM
+      const formatDateTimeIST = (dateString) => {
+        if (!dateString) return '-';
+        try {
+          const date = new Date(dateString);
+          return date.toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }) + ' IST';
+        } catch (e) {
+          return dateString;
+        }
+      };
+
+      // Convert datetime-local to ISO string with timezone for database storage
+      const convertToISOWithTimezone = (datetimeLocalString) => {
+        if (!datetimeLocalString) return null;
+        
+        // Create date object from datetime-local (browser local time)
+        const localDate = new Date(datetimeLocalString);
+        
+        // Convert to ISO string with timezone offset
+        const timezoneOffset = -localDate.getTimezoneOffset();
+        const offsetHours = Math.floor(Math.abs(timezoneOffset) / 60).toString().padStart(2, '0');
+        const offsetMinutes = (Math.abs(timezoneOffset) % 60).toString().padStart(2, '0');
+        const offsetSign = timezoneOffset >= 0 ? '+' : '-';
+        
+        const year = localDate.getFullYear();
+        const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = localDate.getDate().toString().padStart(2, '0');
+        const hours = localDate.getHours().toString().padStart(2, '0');
+        const minutes = localDate.getMinutes().toString().padStart(2, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}:00${offsetSign}${offsetHours}:${offsetMinutes}`;
+      };
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setMessage('');
+
+        if (!electionName.trim()) {
+          setMessage('Please enter an election name');
+          return;
+        }
+        if (!startDate || !endDate) {
+          setMessage('Please select both start and end time');
+          return;
+        }
+        if (startDate >= endDate) {
+          setMessage('End time must be after start time');
+          return;
+        }
+
+        setSubmitting(true);
+        try {
+          const supabase = await getSupabaseClient();
+
+          // Count voters and candidates
+          const { count: votersCount } = await supabase
+            .from('voters').select('*', { count: 'exact', head: true });
+          const { count: candidatesCount } = await supabase
+            .from('candidates').select('*', { count: 'exact', head: true });
+
+          // Convert to proper ISO format with timezone
+          const startDateISO = convertToISOWithTimezone(startDate);
+          const endDateISO = convertToISOWithTimezone(endDate);
+
+          // Insert into election_meta
+          const { data, error } = await supabase
+            .from('election_meta')
+            .insert({
+              election_name: electionName.trim(),
+              start_date: startDateISO,
+              end_date: endDateISO,
+              total_voters: votersCount || 0,
+              total_candidates: candidatesCount || 0
+            })
+            .select('id')
+            .single();
+
+          if (error) throw error;
+
+          // Reset form and reload
+          setElectionName('');
+          setStartDate('');
+          setEndDate('');
+          setMessage('✅ Election created successfully!');
+          await loadElections();
+          
+          setTimeout(() => setMessage(''), 3000);
+
+        } catch (err) {
+          setMessage('❌ Failed: ' + (err.message || 'Unknown error'));
+        } finally {
+          setSubmitting(false);
+        }
+      };
+
+      // Status mapping for database status values
+      const getStatusInfo = (status) => {
+        const statusMap = {
+          'Not Started': { status: 'Not Started', color: '#f59e0b' },
+          'Active': { status: 'Active', color: '#10b981' },
+          'Completed': { status: 'Completed', color: '#6b7280' },
+          'Unknown': { status: 'Unknown', color: '#6b7280' }
+        };
+        return statusMap[status] || { status: 'Unknown', color: '#6b7280' };
+      };
+
+      return (
+        <div className="container">
+          <div className="card">
+            <div className="row">
+              <div style={{ flex: 1 }}>
+                <label>Election Name</label>
+                <input
+                  type="text"
+                  value={electionName}
+                  onChange={(e) => setElectionName(e.target.value)}
+                  placeholder="e.g., 2025 Student Council"
+                  disabled={submitting}
+                  required
+                />
+              </div>
+            </div>
+            <div className="row">
+              <div style={{ flex: 1 }}>
+                <label>Start Time</label>
+                <input
+                  type="datetime-local"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  disabled={submitting}
+                  required
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>End Time</label>
+                <input
+                  type="datetime-local"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  disabled={submitting}
+                  required
+                />
+              </div>
+            </div>
+            <div className="row">
+              <button className="btn" type="button" onClick={() => (window.location.href = 'admin.html')} disabled={submitting}>
+                Cancel
+              </button>
+              <button className="btn" type="button" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? 'Creating...' : 'Create Election'}
+              </button>
+            </div>
+            {message && <div className="muted">{message}</div>}
+          </div>
+
+          <div className="card">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <h3>Existing Elections</h3>
+              <button className="btn" onClick={loadElections} disabled={loading}>
+                Refresh
+              </button>
+            </div>
+            {loading && <div className="muted">Loading…</div>}
+            {error && <div className="muted">{error}</div>}
+            <div style={{ overflowX: "auto" }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Election Name</th>
+                    <th>Start Date (IST)</th>
+                    <th>End Date (IST)</th>
+                    <th>Status</th>
+                    <th>Total Voters</th>
+                    <th>Total Candidates</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {elections.map((election) => {
+                    const statusInfo = getStatusInfo(election.status);
+                    return (
+                      <tr key={election.id}>
+                        <td><strong>{election.election_name || '-'}</strong></td>
+                        <td>{formatDateTimeIST(election.start_date)}</td>
+                        <td>{formatDateTimeIST(election.end_date)}</td>
+                        <td>
+                          <span
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              backgroundColor: statusInfo.color + '20',
+                              color: statusInfo.color,
+                              fontWeight: '600',
+                              fontSize: '12px'
+                            }}
+                          >
+                            {statusInfo.status}
+                          </span>
+                        </td>
+                        <td>{election.total_voters || 0}</td>
+                        <td>{election.total_candidates || 0}</td>
+                      </tr>
+                    );
+                  })}
+                  {!loading && elections.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '20px' }}>
+                        No elections found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      return (
+        <>
+          <PageHeader />
+          <ConductElectionForm />
+        </>
+      );
+    }
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
