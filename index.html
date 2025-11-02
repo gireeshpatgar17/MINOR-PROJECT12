@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirecting…</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; }
+    #status { text-align:center; color:#333; }
+  </style>
+</head>
+<body>
+  <div id="status">🔄 Processing login…</div>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const SUPABASE_URL = "https://ogbykbxfralllvyukpuk.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE";
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    (async () => {
+      try {
+        // Check if this is a magic link callback
+        if (location.hash.includes('access_token')) {
+          console.log('🔗 Magic link callback detected, redirecting to email_confirmed.html...');
+          // Redirect to email_confirmed.html which will handle the session properly
+          window.location.href = "/html/email_confirmed.html" + location.hash;
+          return;
+        } else {
+          // No tokens; send to the actual app entry page
+          window.location.href = "/html/index.html";
+        }
+      } catch (e) {
+        console.error('Error processing redirect:', e);
+        // If there's an error, still try to redirect to email_confirmed.html if there's a hash
+        if (location.hash.includes('access_token')) {
+          window.location.href = "/html/email_confirmed.html" + location.hash;
+        } else {
+          document.getElementById('status').textContent = '❌ Error. Redirecting…';
+          setTimeout(() => window.location.href = "/html/login.html", 1500);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
