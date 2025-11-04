@@ -1,3 +1,4 @@
+/* dashboard.css */
 body {
   font-family: 'Poppins', sans-serif;
   margin: 0;
@@ -40,6 +41,8 @@ h2 {
   text-align: center;
   margin-top: 30px;
   color: #0b3d91;
+  font-size: 2rem;
+  margin-bottom: 20px;
 }
 
 .candidate-list {
@@ -49,21 +52,25 @@ h2 {
   margin: 20px auto;
   max-width: 1200px;
   padding: 0 20px;
+  gap: 20px;
 }
 
 .candidate-card {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  margin: 15px;
-  padding: 30px 25px;
+  padding: 25px 20px;
   border-radius: 20px;
-  width: 280px;
+  width: 300px; /* Fixed width */
+  min-height: 350px; /* Fixed minimum height */
   text-align: center;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .candidate-card::before {
@@ -87,7 +94,43 @@ h2 {
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
-.candidate-card button {
+/* Party logo container with fixed size */
+.party-logo-container {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 15px;
+  padding: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.party-logo {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.candidate-card h3 {
+  margin: 10px 0;
+  color: #0b3d91;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.candidate-card p {
+  margin: 8px 0;
+  color: #555;
+  font-size: 1rem;
+}
+
+.vote-btn {
   background: linear-gradient(135deg, #0b3d91, #1e4d72);
   border: none;
   padding: 15px 20px;
@@ -101,9 +144,10 @@ h2 {
   transition: all 0.3s ease;
   box-shadow: 0 8px 25px rgba(11, 61, 145, 0.3);
   margin-top: 15px;
+  font-size: 1.1rem;
 }
 
-.candidate-card button::before {
+.vote-btn::before {
   content: '';
   position: absolute;
   top: 0;
@@ -114,14 +158,27 @@ h2 {
   transition: left 0.5s;
 }
 
-.candidate-card button:hover::before {
+.vote-btn:hover::before {
   left: 100%;
 }
 
-.candidate-card button:hover {
+.vote-btn:hover {
   background: linear-gradient(135deg, #093273, #0b3d91);
   transform: translateY(-2px);
   box-shadow: 0 12px 35px rgba(11, 61, 145, 0.4);
+}
+
+.voted-btn {
+  background-color: #c7d6f2 !important;
+  color: #445 !important;
+  cursor: not-allowed !important;
+  border: none;
+  padding: 15px 20px;
+  width: 100%;
+  border-radius: 12px;
+  font-weight: 600;
+  margin-top: 15px;
+  font-size: 1.1rem;
 }
 
 .quote {
@@ -133,7 +190,6 @@ h2 {
   max-width: 600px;
   padding: 0 20px;
 }
-
 
 .results-container {
   max-width: 600px;
@@ -168,20 +224,19 @@ h2 {
   transition: width 1s ease-in-out;
 }
 
-
-.voted-btn {
-    background-color: #c7d6f2;
-    color: #445;
-    cursor: not-allowed;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
+#logoutBtn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.3s ease;
 }
 
-.voted-btn:hover {
-    background-color: #b2dfdb; /* no hover change */
+#logoutBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive Design */
@@ -189,12 +244,18 @@ h2 {
   .candidate-list {
     margin: 10px;
     padding: 0 10px;
+    gap: 15px;
   }
   
   .candidate-card {
     width: 100%;
-    max-width: 300px;
-    margin: 10px;
+    max-width: 280px;
+    min-height: 320px;
+  }
+  
+  .party-logo-container {
+    width: 100px;
+    height: 100px;
   }
   
   .quote {
@@ -204,5 +265,26 @@ h2 {
   
   header {
     padding: 15px;
+  }
+  
+  h2 {
+    font-size: 1.6rem;
+    margin-top: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .candidate-card {
+    min-height: 300px;
+    padding: 20px 15px;
+  }
+  
+  .party-logo-container {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .candidate-card h3 {
+    font-size: 1.2rem;
   }
 }
