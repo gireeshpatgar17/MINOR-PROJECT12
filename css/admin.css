@@ -1,0 +1,209 @@
+/* ===========================
+   Admin Dashboard Styles
+   Matches style.css theme
+=========================== */
+
+/* Base Layout */
+body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  color: #1f2a44;
+  background: linear-gradient(135deg, #4776E6 0%, #8E54E9 100%);
+  background-size: 400% 400%;
+  animation: gradientAnimation 15s ease infinite;
+  min-height: 100vh;
+}
+
+/* Header Section */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(11, 61, 145, 0.95);
+  color: #fff;
+  padding: 20px 30px;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  backdrop-filter: blur(8px);
+}
+
+header strong {
+  font-size: 1.5rem;
+}
+
+header .muted {
+  color: rgba(255,255,255,0.8);
+  font-size: 0.9rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn.primary {
+  background: #0b3d91;
+  color: #fff;
+}
+
+.btn.primary:hover {
+  background: #093273;
+}
+
+.btn.outline {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.5);
+}
+
+/* Content Container */
+.container {
+  max-width: 1100px;
+  margin: 30px auto;
+  padding: 0 20px;
+  color: #fff;
+}
+
+/* Grid of Cards */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Individual Card */
+.card {
+  background: rgba(255,255,255,0.9);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  color: #1f2a44;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+.card img {
+  max-width: 100%;
+  height: 96px;
+  object-fit: contain;
+  margin-top: 10px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Admin Actions */
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Action Buttons below grid */
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 30px;
+  margin-bottom: 20px;
+}
+
+.btn.big {
+  padding: 12px 25px;
+  margin: 1px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #0b3d91, #093273);
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.btn.big.primary {
+  background: #0b3d91;
+  color: #fff;
+}
+
+.btn.big.primary:hover {
+  background: #093273;
+}
+
+/* Loading & Error States */
+.muted {
+  color: rgba(255,255,255,0.8);
+  font-size: 0.95rem;
+}
+
+/* Ensure readability inside light cards */
+.grid .card {
+  text-align: center;
+}
+
+.grid .card .muted {
+  color: #4b5563; /* dark muted for light background */
+}
+
+.profile-section .muted {
+  color: #4b5563; /* readable on light section background */
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn.big {
+    width: 100%;
+  }
+}
+
+/* Admin Profile Combined Card */
+.profile-card {
+  display: block;
+}
+
+.profile-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.profile-section {
+  background: rgba(255,255,255,0.95);
+  border-radius: 10px;
+  padding: 16px;
+  color: #1f2a44;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.section-title {
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .profile-sections {
+    grid-template-columns: 1fr;
+  }
+}
