@@ -342,6 +342,7 @@ app.post("/api/registerVoter", async (req, res) => {
   }
 });
 
+
 // ---------- SERVER START ----------
 const PORT = process.env.BACKEND_PORT ? Number(process.env.BACKEND_PORT) : 4000;
 app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
