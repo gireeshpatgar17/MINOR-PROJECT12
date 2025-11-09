@@ -1,6 +1,7 @@
 // auth.js
 // Handles registration, login and OTP verification with smooth toast notifications
 
+
 function showToast(message, type = "success") {
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
