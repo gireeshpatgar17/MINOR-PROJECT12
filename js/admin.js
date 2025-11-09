@@ -1,5 +1,6 @@
 // admin.js - Admin-only actions: add candidate (onlyOwner) and fund voter wallet via backend
 
+
 const CONTRACT_ADDRESS = "0xYourDeployedContractAddress"; // set actual address
 const contractABI = [
   {
