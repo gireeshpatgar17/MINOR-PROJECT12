@@ -1,4 +1,5 @@
 // ✅ backend/register.js
+
 import fetch from "node-fetch"; // Force working fetch for Node 22
 globalThis.fetch = fetch; // Make it global so Supabase uses it
 
