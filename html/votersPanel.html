@@ -1,247 +1,352 @@
+<!-- voters_panel.html  -->
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voters Panel</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script type="module">window.__importSupabase = async () => (await import('https://esm.sh/@supabase/supabase-js@2')).createClient;</script>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; }
-    header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #e5e7eb; }
-    .container { max-width: 1100px; margin: 16px auto; padding: 0 16px; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; }
-    .btn { padding: 8px 12px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; border-radius: 6px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-    input { padding: 8px; border: 1px solid #e5e7eb; border-radius: 6px; width: 100%; }
-    label { font-size: 12px; color: #374151; }
-    .muted { color: #6b7280; font-size: 12px; }
-    .card { border:1px solid #e5e7eb; border-radius:8px; padding:12px; background:#fff; margin-bottom:12px; }
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel" data-presets="react">
-    const SUPABASE_URL = 'https://ogbykbxfralllvyukpuk.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE';
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voters Panel</title>
+    <link rel="stylesheet" href="/css/candidates_panel.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
 
-    function Header() {
-      return (
-        <header>
-          <div>
-            <strong>Voters Panel</strong>
-            <div className="muted">Manage voters</div>
-          </div>
-          <div>
-            <button className="btn" onClick={() => (window.location.href = 'admin.html')}>Back to Admin</button>
-          </div>
-        </header>
-      );
-    }
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    function Form({ value, onChange, onSubmit, onCancel, saving }) {
-      return (
-        <div className="card">
-          <div className="row">
-            <div style={{ flex: 1 }}>
-              <label>Aadhaar No</label>
-              <input value={value.aadhaar_no} onChange={e => onChange({ ...value, aadhaar_no: e.target.value })} placeholder="12 digits" />
+    <script type="module">
+      window.__importSupabase = async () =>
+        (await import("https://esm.sh/@supabase/supabase-js@2")).createClient;
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react">
+      const SUPABASE_URL = "https://ogbykbxfralllvyukpuk.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE";
+
+      function Header() {
+        return (
+          <header>
+            <div>
+              <strong>Voters Panel</strong>
+              <div className="muted">Manage voters</div>
             </div>
-            <div style={{ flex: 1 }}>
-              <label>Name</label>
-              <input value={value.name} onChange={e => onChange({ ...value, name: e.target.value })} />
+            <div>
+              <button className="btn" onClick={() => (window.location.href = "admin.html")}>
+                Back to Admin
+              </button>
+            </div>
+          </header>
+        );
+      }
+
+      function Form({ value, onChange, onSubmit, onCancel, saving }) {
+        return (
+          <div className="card">
+            <div className="row">
+              <div style={{ flex: 1 }}>
+                <label>Aadhaar No</label>
+                <input
+                  value={value.aadhaar_no}
+                  onChange={(e) => onChange({ ...value, aadhaar_no: e.target.value })}
+                  placeholder="12 digits"
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>Name</label>
+                <input
+                  value={value.name}
+                  onChange={(e) => onChange({ ...value, name: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="row">
+              <div style={{ flex: 1 }}>
+                <label>Mobile No</label>
+                <input
+                  value={value.mobile_no}
+                  onChange={(e) => onChange({ ...value, mobile_no: e.target.value })}
+                  placeholder="10 digits"
+                />
+              </div>
+            </div>
+
+            <div className="row">
+              <div style={{ flex: 1 }}>
+                <label>Date of Birth</label>
+                <input
+                  type="date"
+                  value={value.dob || ""}
+                  onChange={(e) => onChange({ ...value, dob: e.target.value })}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={value.email || ""}
+                  onChange={(e) => onChange({ ...value, email: e.target.value })}
+                  placeholder="name@example.com"
+                />
+              </div>
+            </div>
+
+            <div className="row">
+              <button className="btn" onClick={onCancel}>Cancel</button>
+              <button className="btn" onClick={onSubmit} disabled={saving}>
+                {saving ? "Saving…" : "Save"}
+              </button>
             </div>
           </div>
-          <div className="row">
-            <div style={{ flex: 1 }}>
-              <label>Mobile No</label>
-              <input value={value.mobile_no} onChange={e => onChange({ ...value, mobile_no: e.target.value })} placeholder="10 digits" />
-            </div>
-            {/* Wallet Address field hidden per request; value retained internally */}
-          </div>
-          <div className="row">
-            <div style={{ flex: 1 }}>
-              <label>Fingerprint (select file to hash)</label>
-              <input type="file" accept="image/*,.bin" onChange={async e => {
-                const file = e.target.files && e.target.files[0];
-                if (!file) { onChange({ ...value, fingerprint_data: null }); return; }
-                try {
-                  const buf = await file.arrayBuffer();
-                  const hash = await crypto.subtle.digest('SHA-256', buf);
-                  const bytes = Array.from(new Uint8Array(hash));
-                  const hex = bytes.map(b => b.toString(16).padStart(2, '0')).join('');
-                  onChange({ ...value, fingerprint_data: hex });
-                } catch (err) {
-                  alert('Failed to hash fingerprint file');
-                }
-              }} />
-              <div className="muted">{value.fingerprint_data ? `Hash: ${value.fingerprint_data.slice(0,16)}…` : 'No fingerprint selected'}</div>
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-              <label><input type="checkbox" checked={value.biometric_verified} onChange={e => onChange({ ...value, biometric_verified: e.target.checked })} /> Biometric Verified</label>
-            </div>
-          </div>
-          <div className="row">
-            <button className="btn" onClick={onCancel}>Cancel</button>
-            <button className="btn" onClick={onSubmit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-          </div>
-        </div>
-      );
-    }
+        );
+      }
 
-    function Panel() {
-      // wallet_address is optional and not collected during registration
-      const [list, setList] = React.useState([]);
-      const [loading, setLoading] = React.useState(false);
-      const [error, setError] = React.useState(null);
-      const [editing, setEditing] = React.useState(null);
-      const [draft, setDraft] = React.useState({
-        aadhaar_no: '', name: '', mobile_no: '', wallet_address: null, fingerprint_data: null, biometric_verified: false, has_voted: false,
-      });
+      function Panel() {
+        const [list, setList] = React.useState([]);
+        const [loading, setLoading] = React.useState(false);
+        const [error, setError] = React.useState(null);
+        const [editing, setEditing] = React.useState(null);
 
-      const client = React.useMemo(() => ({ create: async () => {
-        const createClient = await window.__importSupabase();
-        return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }}), []);
-
-      const validate = async (v, id) => {
-        if (!/^[0-9]{12}$/.test(v.aadhaar_no)) return 'Aadhaar must be 12 digits';
-        if (!v.name) return 'Name is required';
-        if (!/^[0-9]{10}$/.test(v.mobile_no)) return 'Mobile must be 10 digits';
-          const supabase = await client.create();
-        const checks = [ ['aadhaar_no', v.aadhaar_no] ];
-          for (const pair of checks) {
-          const col = pair[0];
-          const val = pair[1];
-          let q = supabase.from('voters').select('id').eq(col, val).limit(1);
-          if (id) q = q.neq('id', id);
-          const { data, error } = await q;
-          if (error) return error.message;
-          if (data && data.length > 0) return `${col} already exists`;
-        }
-        return null;
-      };
-
-      const load = React.useCallback(async () => {
-        setLoading(true); setError(null);
-        try {
-          const supabase = await client.create();
-          const { data, error } = await supabase.from('voters').select('*').order('created_at', { ascending: false });
-          if (error) throw error;
-          setList(data || []);
-        } catch (e) {
-          setError((e && e.message) ? e.message : 'Failed to load');
-        } finally {
-          setLoading(false);
-        }
-      }, [client]);
-
-      React.useEffect(() => { load(); }, [load]);
-
-      const onSubmit = async () => {
-        const id = draft && draft.id;
-        const err = await validate(draft, id);
-        if (err) { alert(err); return; }
-        setLoading(true);
-        try {
-          const supabase = await client.create();
-          if (id) {
-            const payload = { ...draft, wallet_address: null };
-            const { error } = await supabase.from('voters').update(payload).eq('id', id);
-            if (error) throw error;
-          } else {
-            const payload = { ...draft, has_voted: false, wallet_address: null };
-            const { error } = await supabase.from('voters').insert(payload);
-            if (error) throw error;
-          }
-          setDraft({ aadhaar_no: '', name: '', mobile_no: '', wallet_address: null, fingerprint_data: null, biometric_verified: false, has_voted: false });
-          setEditing(null);
-          await load();
-        } catch (e) {
-          alert((e && e.message) ? e.message : 'Failed to save');
-        } finally { setLoading(false); }
-      };
-
-      const onEdit = (v) => {
-        setEditing(v);
-        setDraft({
-          id: v.id,
-          aadhaar_no: v.aadhaar_no,
-          name: v.name,
-          mobile_no: v.mobile_no,
-          wallet_address: v.wallet_address,
-          fingerprint_data: (v.fingerprint_data != null ? v.fingerprint_data : null),
-          biometric_verified: v.biometric_verified,
-          has_voted: v.has_voted,
+        const [draft, setDraft] = React.useState({
+          id: null,
+          aadhaar_no: "",
+          name: "",
+          mobile_no: "",
+          dob: "",
+          email: "",
+          has_voted: false,
         });
-      };
 
-      const onDelete = async (v) => {
-        if (!confirm('Delete this voter?')) return;
-        setLoading(true);
-        try {
+        const client = React.useMemo(
+          () => ({
+            create: async () => {
+              const createClient = await window.__importSupabase();
+              return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            },
+          }),
+          []
+        );
+
+        const validate = async (v, id) => {
+          if (!/^[0-9]{12}$/.test(v.aadhaar_no)) return "Aadhaar must be 12 digits";
+          if (!v.name) return "Name is required";
+          if (!/^[0-9]{10}$/.test(v.mobile_no)) return "Mobile must be 10 digits";
+          if (!v.dob) return "Date of Birth is required";
+          if (!v.email) return "Email is required";
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return "Invalid email";
+
           const supabase = await client.create();
-          const { error } = await supabase.from('voters').delete().eq('id', v.id);
-          if (error) throw error;
-          await load();
-        } catch (e) {
-          alert((e && e.message) ? e.message : 'Failed to delete');
-        } finally { setLoading(false); }
-      };
+          const checks = [["aadhaar_no", v.aadhaar_no]];
 
-      return (
-        <>
-          <Header />
-          <div className="container">
-            <Form value={draft} onChange={setDraft} onSubmit={onSubmit} onCancel={() => { setEditing(null); setDraft({ aadhaar_no: '', name: '', mobile_no: '', wallet_address: null, fingerprint_data: null, biometric_verified: false, has_voted: false }); }} saving={loading} />
+          for (const pair of checks) {
+            const col = pair[0];
+            const val = pair[1];
+            let q = supabase.from("voters").select("id").eq(col, val).limit(1);
+            if (id) q = q.neq("id", id);
+            const { data, error } = await q;
+            if (error) return error.message;
+            if (data && data.length > 0) return `${col} already exists`;
+          }
 
-            <div className="card">
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <h3>Voters</h3>
-                <button className="btn" onClick={load} disabled={loading}>Refresh</button>
-              </div>
-              {loading && <div className="muted">Loading…</div>}
-              {error && <div className="muted">{error}</div>}
-              <div style={{ overflowX:'auto' }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Aadhaar</th><th>Name</th><th>Mobile</th><th>Wallet</th><th>Biometric</th><th>Voted</th><th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {list.map(v => (
-                      <tr key={v.id}>
-                        <td>{v.aadhaar_no}</td>
-                        <td>{v.name}</td>
-                        <td>{v.mobile_no}</td>
-                        <td style={{ fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize:12 }}>{v.wallet_address || '-'}</td>
-                        <td>{v.biometric_verified ? 'Yes' : 'No'}</td>
-                        <td>{v.has_voted ? 'Yes' : 'No'}</td>
-                        <td>
-                          <button className="btn" onClick={() => onEdit(v)}>Edit</button>
-                          <button className="btn" onClick={() => onDelete(v)}>Delete</button>
-                        </td>
+          return null;
+        };
+
+        const load = React.useCallback(async () => {
+          setLoading(true);
+          setError(null);
+
+          try {
+            const supabase = await client.create();
+            const { data, error } = await supabase
+              .from("voters")
+              .select("*")
+              .order("created_at", { ascending: false });
+
+            if (error) throw error;
+
+            setList(data || []);
+          } catch (err) {
+            setError(err.message || "Failed to load voters");
+          } finally {
+            setLoading(false);
+          }
+        }, [client]);
+
+        React.useEffect(() => {
+          load();
+        }, [load]);
+
+        const onSubmit = async () => {
+          const id = draft.id;
+          const err = await validate(draft, id);
+          if (err) return alert(err);
+
+          setLoading(true);
+          try {
+            const supabase = await client.create();
+
+            if (id) {
+              await supabase.from("voters").update({
+                aadhaar_no: draft.aadhaar_no,
+                name: draft.name,
+                mobile_no: draft.mobile_no,
+                dob: draft.dob,
+                email: draft.email,
+              }).eq("id", id);
+            } else {
+              await supabase.from("voters").insert({
+                aadhaar_no: draft.aadhaar_no,
+                name: draft.name,
+                mobile_no: draft.mobile_no,
+                dob: draft.dob,
+                email: draft.email,
+                has_voted: false
+              });
+            }
+
+            setDraft({
+              id: null,
+              aadhaar_no: "",
+              name: "",
+              mobile_no: "",
+              dob: "",
+              email: "",
+              has_voted: false,
+            });
+
+            setEditing(false);
+            await load();
+          } catch (err) {
+            alert(err.message || "Failed to save voter");
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const onEdit = (v) => {
+          setEditing(true);
+          setDraft({
+            id: v.id,
+            aadhaar_no: v.aadhaar_no,
+            name: v.name,
+            mobile_no: v.mobile_no,
+            dob: v.dob || "",
+            email: v.email,
+            has_voted: v.has_voted,
+          });
+        };
+
+        const onDelete = async (v) => {
+          if (!confirm("Remove this voter?")) return;
+
+          setLoading(true);
+          try {
+            const supabase = await client.create();
+            await supabase.from("voters").delete().eq("id", v.id);
+            await load();
+          } catch (err) {
+            alert(err.message || "Failed to remove the voter");
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        return (
+          <>
+            <Header />
+
+            <div className="container">
+              <Form
+                value={draft}
+                onChange={setDraft}
+                onSubmit={onSubmit}
+                onCancel={() =>
+                  setDraft({
+                    id: null,
+                    aadhaar_no: "",
+                    name: "",
+                    mobile_no: "",
+                    dob: "",
+                    email: "",
+                    has_voted: false,
+                  })
+                }
+                saving={loading}
+              />
+
+              <div className="card">
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <h3>Voters</h3>
+                  <button className="btn" onClick={load} disabled={loading}>
+                    Refresh
+                  </button>
+                </div>
+
+                {loading && <div className="muted">Loading…</div>}
+                {error && <div className="muted">{error}</div>}
+
+                <div style={{ overflowX: "auto" }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>DOB</th>
+                        <th>Email</th>
+                        <th>Is Registered</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                    {(!loading && list.length === 0) && (
-                      <tr><td colSpan={7} className="muted">No voters found.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+
+                    <tbody>
+                      {list.map((v) => {
+                        const is_registered =
+                          v.is_registered === true ||
+                          v.is_registered === "true" ||
+                          v.is_registered === 1;
+
+                        return (
+                          <tr key={v.id}>
+                            <td>{v.name}</td>
+                            <td>{v.dob || "-"}</td>
+                            <td>{v.email || "-"}</td>
+                            <td>{is_registered ? "Yes" : "No"}</td>
+
+                            <td>
+                              <button className="btn" onClick={() => onEdit(v)}>
+                                Edit
+                              </button>
+                              <button className="btn" onClick={() => onDelete(v)}>
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {!loading && list.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="muted">
+                            No voters found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
-        </>
-      );
-    }
+          </>
+        );
+      }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<Panel />);
-  </script>
-</body>
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<Panel />);
+    </script>
+  </body>
 </html>
-
