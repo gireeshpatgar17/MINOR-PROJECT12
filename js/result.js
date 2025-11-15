@@ -1,6 +1,5 @@
 // result.js
 // Dynamic vote results from blockchain
-
 let web3Result;
 let votingContractResult;
 

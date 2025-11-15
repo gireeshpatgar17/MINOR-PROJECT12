@@ -1,6 +1,5 @@
 // metamask.js
 // Handles MetaMask wallet connection with notifications
-
 async function connectWallet() {
     if (typeof window.ethereum !== "undefined") {
         try {

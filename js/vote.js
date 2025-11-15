@@ -1,6 +1,5 @@
 // vote.js
 // Voting dashboard integration with blockchain
-
 let web3;
 let votingContract;
 

@@ -14,6 +14,7 @@ try {
 
   const { data, error } = await supabase.from("voters").select("*").limit(1);
   console.log("✅ Result:", data);
+  
   if (error) console.error("❌ Error:", error);
 } catch (err) {
   console.error("🔥 Exception:", err);

@@ -1,4 +1,5 @@
 // ✅ backend/register.js
+
 import fetch from "node-fetch"; // Force working fetch for Node 22
 globalThis.fetch = fetch; // Make it global so Supabase uses it
 
@@ -341,6 +342,7 @@ app.post("/api/registerVoter", async (req, res) => {
     });
   }
 });
+
 
 // ---------- SERVER START ----------
 const PORT = process.env.BACKEND_PORT ? Number(process.env.BACKEND_PORT) : 4000;
