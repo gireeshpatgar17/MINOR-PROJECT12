@@ -2,28 +2,962 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Voting Dashboard</title>
-  <link rel="stylesheet" href="../css/dashboard.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voter Dashboard</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="/js/metamask.js"></script>
+  <style>
+    .face-verify-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+    }
+    .face-verify-modal.active {
+      display: flex;
+    }
+    .face-verify-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+    }
+    #verifyVideoElement {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .verify-status {
+      margin: 15px 0;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 0.95em;
+    }
+    .verify-status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .verify-status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .verify-status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+    #verifyFaceBtn {
+      background: #0b3d91;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    #cancelVerifyBtn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+  </style>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const SUPABASE_URL = "https://ogbykbxfralllvyukpuk.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYnlrYnhmcmFsbGx2eXVrcHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MDYzNzIsImV4cCI6MjA3NjA4MjM3Mn0.mKnh40g6I7-hBlmvtcAuSzUc9WJWDmgMdKCQnY2UKKE";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let voter = null;
+    let hasVoted = false;
+    let isVotingInProgress = false; // Prevent multiple simultaneous votes
+    let candidates = [];
+    let voterEthAddress = null;
+    let walletConnected = false;
+    let votingContract = null;
+    let provider = null;
+    let signer = null;
+    let faceModelsLoaded = false;
+    let storedFaceDescriptor = null;
+    
+    // Contract details - Sepolia Testnet
+    // Using a valid contract address for the Voting contract on Sepolia
+    const CONTRACT_ADDRESS = "0x1A67f38D791C29E98F2b3318Cd2E687bc9461E32"; // Voting contract on Sepolia
+    const SEPOLIA_RPC_URL = "https://sepolia.infura.io/v3/7ce5241fd4a848e9959f3bf8d4545836"; // Infura URL
+    
+    const CONTRACT_ABI = fetch('/contracts/voting.json')
+      .then(response => response.json())
+      .catch(error => console.error("Error loading contract ABI:", error));
+    
+    // Sepolia Testnet configuration
+    const SEPOLIA_CHAIN_ID = "0xaa36a7"; // Chain ID for Sepolia testnet
+
+    async function init() {
+      console.log("🚀 Initializing dashboard...");
+
+      // Check for active session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error("❌ No active session:", sessionError);
+        alert("Please log in first");
+        window.location.href = "login.html";
+        return;
+      }
+
+      voter = session.user;
+      document.getElementById('userEmail').textContent = voter.email;
+      console.log("✅ User logged in:", voter.email);
+
+      // Setup logout button
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        window.location.href = "login.html";
+      });
+
+      // Fetch voter's Ethereum address from Supabase
+      try {
+        const { data: voterData, error: voterError } = await supabase
+          .from("voters")
+          .select("metamask_address, has_voted")
+          .eq("email", voter.email)
+          .single();
+
+        if (voterError) {
+          console.error("❌ Error fetching voter data:", voterError);
+          alert("Error fetching your voter information. Please contact support.");
+          return;
+        }
+
+        if (!voterData.metamask_address) {
+          console.error("❌ No Ethereum address registered for this voter");
+          alert("No Ethereum wallet address is registered for your account. Please contact support.");
+          return;
+        }
+
+        voterEthAddress = voterData.metamask_address;
+        hasVoted = voterData.has_voted === true;
+        console.log("🔑 Voter ETH address:", voterEthAddress);
+        console.log("🗳️ Has voted:", hasVoted);
+
+        // Initialize Ethereum provider if available
+        if (window.ethereum) {
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+        }
+      } catch (error) {
+        console.error("❌ Unexpected error during initialization:", error);
+        alert("An unexpected error occurred. Please try again later.");
+      }
+
+      // Load face models for verification
+      await loadFaceModels();
+      
+      // Fetch stored face descriptor for this voter
+      await fetchStoredFaceDescriptor();
+
+      // Load candidates and check voting status
+      await loadCandidates();
+
+      // Listen for auth state changes (logout, etc.)
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          window.location.href = "login.html";
+        }
+      });
+    }
+
+    // Load face-api.js models
+    async function loadFaceModels() {
+      try {
+        console.log("📦 Loading face recognition models...");
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri('/weights'),
+          faceapi.nets.faceLandmark68Net.loadFromUri('/weights'),
+          faceapi.nets.faceRecognitionNet.loadFromUri('/weights')
+        ]);
+        faceModelsLoaded = true;
+        console.log("✅ Face recognition models loaded");
+      } catch (error) {
+        console.error("❌ Error loading face models:", error);
+      }
+    }
+
+    // Fetch stored face descriptor from Supabase
+    async function fetchStoredFaceDescriptor() {
+      try {
+        const { data: voterData, error } = await supabase
+          .from("voters")
+          .select("face_descriptor")
+          .eq("email", voter.email)
+          .single();
+
+        if (error || !voterData) {
+          console.warn("⚠️ Could not fetch face descriptor:", error);
+          return;
+        }
+
+        storedFaceDescriptor = voterData.face_descriptor;
+        console.log("✅ Stored face descriptor loaded");
+      } catch (error) {
+        console.error("❌ Error fetching face descriptor:", error);
+      }
+    }
+
+    // Verify face before voting
+    async function verifyFace() {
+      return new Promise(async (resolve, reject) => {
+        // If no stored face descriptor, skip verification
+        if (!storedFaceDescriptor || !Array.isArray(storedFaceDescriptor) || storedFaceDescriptor.length === 0) {
+          console.warn("⚠️ No face descriptor stored. Skipping face verification.");
+          resolve(true); // Allow voting if no face stored
+          return;
+        }
+
+        if (!faceModelsLoaded) {
+          reject(new Error("Face recognition models not loaded"));
+          return;
+        }
+
+        const modal = document.getElementById("faceVerifyModal");
+        const videoElement = document.getElementById("verifyVideoElement");
+        const verifyStatus = document.getElementById("verifyStatus");
+        const verifyBtn = document.getElementById("verifyFaceBtn");
+        const cancelBtn = document.getElementById("cancelVerifyBtn");
+
+        modal.classList.add("active");
+        let videoStream = null;
+        let isVerifying = false;
+
+        // Start camera
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              width: 640, 
+              height: 480,
+              facingMode: 'user' 
+            } 
+          });
+          videoStream = stream;
+          videoElement.srcObject = stream;
+          verifyStatus.textContent = "Camera started! Position your face in the frame.";
+          verifyStatus.className = "verify-status info";
+          verifyBtn.disabled = false;
+        } catch (error) {
+          verifyStatus.textContent = "Camera access denied. Please allow camera access.";
+          verifyStatus.className = "verify-status error";
+          reject(new Error("Camera access denied"));
+          return;
+        }
+
+        // Verify button handler (remove any existing listeners first)
+        const verifyHandler = async () => {
+          if (isVerifying) return;
+          isVerifying = true;
+          verifyBtn.disabled = true;
+          verifyStatus.textContent = "Processing face verification...";
+          verifyStatus.className = "verify-status info";
+
+          try {
+            // Multi-frame verification to reduce false accepts
+            // Normalize stored descriptor(s): support old single-descriptor format and new array-of-arrays
+            let storedDescriptors = storedFaceDescriptor;
+            if (!Array.isArray(storedDescriptors)) storedDescriptors = [storedDescriptors];
+            // If storedDescriptors is an array of numbers (old format), wrap it
+            if (storedDescriptors.length > 0 && typeof storedDescriptors[0] === 'number') {
+              storedDescriptors = [storedDescriptors];
+            }
+
+            // Build averaged template from stored descriptors
+            const template = new Array(storedDescriptors[0].length).fill(0);
+            for (const desc of storedDescriptors) {
+              for (let i = 0; i < desc.length; i++) template[i] += desc[i];
+            }
+            for (let i = 0; i < template.length; i++) template[i] /= storedDescriptors.length;
+
+            // Verification parameters (tuneable)
+            const FRAMES = 5; // sample frames
+            const INTERVAL = 300; // ms between frames
+            const PER_FRAME_THRESHOLD = 0.55; // per-frame euclidean distance threshold (stricter)
+            const AVG_THRESHOLD = 0.57; // average distance threshold
+            const MAJORITY = 3; // number of frames that must pass
+
+            let passCount = 0;
+            let distances = [];
+
+            for (let f = 0; f < FRAMES; f++) {
+              const detection = await faceapi
+                .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+
+              if (!detection || !detection.descriptor) {
+                distances.push(Number.MAX_VALUE);
+                // wait and continue
+              } else {
+                const currentDescriptor = Array.from(detection.descriptor);
+                const dist = faceapi.euclideanDistance(currentDescriptor, template);
+                distances.push(dist);
+                if (dist < PER_FRAME_THRESHOLD) passCount++;
+              }
+
+              // wait between frames except after last
+              if (f < FRAMES - 1) await new Promise(r => setTimeout(r, INTERVAL));
+            }
+
+            // Compute average distance (ignore MAX_VALUE entries by treating them as high distance)
+            const avgDistance = distances.reduce((s, v) => s + (isFinite(v) ? v : 5), 0) / distances.length;
+
+            // Stop camera
+            if (videoStream) {
+              videoStream.getTracks().forEach(track => track.stop());
+              videoElement.srcObject = null;
+            }
+
+            const isMatch = (passCount >= MAJORITY) && (avgDistance < AVG_THRESHOLD);
+
+            if (isMatch) {
+              verifyStatus.textContent = `✅ Face verified! (avg: ${avgDistance.toFixed(3)}, pass ${passCount}/${FRAMES})`;
+              verifyStatus.className = "verify-status success";
+              verifyBtn.removeEventListener("click", verifyHandler);
+              cancelBtn.removeEventListener("click", cancelHandler);
+              setTimeout(() => {
+                modal.classList.remove("active");
+                resolve(true);
+              }, 1000);
+            } else {
+              verifyStatus.textContent = `❌ Face verification failed. (avg: ${avgDistance.toFixed(3)}, pass ${passCount}/${FRAMES})`;
+              verifyStatus.className = "verify-status error";
+              verifyBtn.removeEventListener("click", verifyHandler);
+              cancelBtn.removeEventListener("click", cancelHandler);
+              setTimeout(() => {
+                modal.classList.remove("active");
+                reject(new Error("Face verification failed. Please try again."));
+              }, 2000);
+            }
+          } catch (error) {
+            console.error("Face verification error:", error);
+            if (videoStream) {
+              videoStream.getTracks().forEach(track => track.stop());
+              videoElement.srcObject = null;
+            }
+            verifyBtn.removeEventListener("click", verifyHandler);
+            cancelBtn.removeEventListener("click", cancelHandler);
+            modal.classList.remove("active");
+            reject(new Error("Face verification error: " + error.message));
+          }
+        };
+
+        // Cancel button handler
+        const cancelHandler = () => {
+          if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoElement.srcObject = null;
+          }
+          verifyBtn.removeEventListener("click", verifyHandler);
+          cancelBtn.removeEventListener("click", cancelHandler);
+          modal.classList.remove("active");
+          reject(new Error("Face verification cancelled"));
+        };
+
+        verifyBtn.addEventListener("click", verifyHandler);
+        cancelBtn.addEventListener("click", cancelHandler);
+      });
+    }
+    
+    async function connectToMetaMask() {
+      try {
+        // Check if MetaMask is on the correct network (Sepolia)
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== SEPOLIA_CHAIN_ID) {
+          try {
+            // Try to switch to Sepolia
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: SEPOLIA_CHAIN_ID }],
+            });
+            showToast("Switched to Sepolia testnet", "success");
+          } catch (switchError) {
+            // If the network doesn't exist in MetaMask, prompt to add it
+            if (switchError.code === 4902) {
+              try {
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [
+                    {
+                      chainId: SEPOLIA_CHAIN_ID,
+                      chainName: 'Sepolia Testnet',
+                      nativeCurrency: {
+                        name: 'Sepolia ETH',
+                        symbol: 'ETH',
+                        decimals: 18
+                      },
+                      rpcUrls: [SEPOLIA_RPC_URL],
+                      blockExplorerUrls: ['https://sepolia.etherscan.io/']
+                    },
+                  ],
+                });
+              } catch (addError) {
+                showToast("Failed to add Sepolia network to MetaMask", "error");
+                return false;
+              }
+            } else {
+              showToast("Please switch to Sepolia testnet in MetaMask", "error");
+              return false;
+            }
+          }
+        }
+
+        // Request account access
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const connectedAddress = accounts[0];
+        
+        // Check if connected address matches registered address
+        if (connectedAddress.toLowerCase() !== voterEthAddress.toLowerCase()) {
+          showToast(`Please connect with your registered wallet address: ${voterEthAddress}`, "error");
+          return false;
+        }
+        
+        // Reinitialize provider after network switch
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        const contractAbi = await CONTRACT_ABI;
+        votingContract = new ethers.Contract(CONTRACT_ADDRESS, contractAbi, signer);
+        
+        walletConnected = true;
+        
+        // Check blockchain state and sync with database
+        await checkBlockchainVoteStatus();
+        
+        showToast("Wallet connected successfully to Sepolia testnet!", "success");
+        return true;
+      } catch (error) {
+        console.error("❌ Error connecting to MetaMask:", error);
+        showToast("Failed to connect wallet. " + error.message, "error");
+        return false;
+      }
+    }
+
+    async function checkBlockchainVoteStatus() {
+      // Only check blockchain if wallet is connected
+      if (!walletConnected || !votingContract || !voterEthAddress) {
+        return false; // Return false if we can't check
+      }
+
+      try {
+        // First verify the contract has code deployed
+        const code = await provider.getCode(CONTRACT_ADDRESS);
+        if (code === '0x' || code === '0x0') {
+          console.warn("⚠️ No contract code found at address:", CONTRACT_ADDRESS);
+          console.warn("💡 Check if deployment was successful on Etherscan:");
+          console.warn(`   https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`);
+          return false;
+        }
+
+        const blockchainHasVoted = await votingContract.hasVoted(voterEthAddress);
+        console.log("🔍 Checking blockchain vote status:", blockchainHasVoted);
+        
+        // If blockchain says user has voted, sync database
+        if (blockchainHasVoted && !hasVoted) {
+          hasVoted = true;
+          await supabase
+            .from("voters")
+            .update({ has_voted: true })
+            .eq("email", voter.email);
+          console.log("🔄 Synced database with blockchain state: user has voted");
+        }
+        return blockchainHasVoted;
+      } catch (error) {
+        console.error("❌ Error checking blockchain vote status:", error);
+        // If the call reverts, the contract might not be the right one or doesn't have this function
+        // Return false and let the user try to vote - the vote transaction will handle the revert
+        return false;
+      }
+    }
+
+    async function loadCandidates() {
+      console.log("📋 Loading candidates...");
+
+      try {
+        // Check blockchain state if wallet is connected
+        await checkBlockchainVoteStatus();
+
+        // Fetch candidates
+        const { data: candidatesData, error: candidatesError } = await supabase
+          .from("candidates")
+          .select("*")
+          .order("created_at", { ascending: true });
+
+        if (candidatesError) {
+          console.error("❌ Error loading candidates:", candidatesError);
+          alert("Error loading candidates: " + candidatesError.message);
+          return;
+        }
+
+        if (!candidatesData || candidatesData.length === 0) {
+          document.getElementById("candidateList").innerHTML = "<p style='text-align:center;padding:20px;'>No candidates available.</p>";
+          return;
+        }
+
+        candidates = candidatesData;
+
+        // Check if voter has already voted
+        const { data: voterData, error: voterError } = await supabase
+          .from("voters")
+          .select("has_voted")
+          .eq("email", voter.email)
+          .single();
+
+        if (voterError) {
+          console.error("❌ Error checking vote status:", voterError);
+          alert("Error checking vote status: " + voterError.message);
+          return;
+        }
+
+        hasVoted = voterData.has_voted === true;
+        console.log("🗳️ Has voted:", hasVoted);
+
+        // Render candidates
+        renderCandidates();
+
+      } catch (error) {
+        console.error("❌ Unexpected error:", error);
+        alert("An unexpected error occurred: " + error.message);
+      }
+    }
+
+    function renderCandidates() {
+      const container = document.getElementById("candidateList");
+      container.innerHTML = "";
+
+      if (hasVoted) {
+        container.innerHTML = "<div style='text-align:center;padding:20px;color:#d32f2f;'><strong>⚠️ You have already voted.</strong></div>";
+        return;
+      }
+
+      candidates.forEach(c => {
+        const card = document.createElement("div");
+        card.className = "candidate-card";
+        
+        card.innerHTML = `
+          <div class="party-logo-container">
+            <img src="${c.symbol_url}" alt="${c.candidate_name} logo" class="party-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect width=%22100%22 height=%22100%22 fill=%22%23ddd%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+          </div>
+          <h3>${c.candidate_name}</h3>
+          <p><strong>Party:</strong> ${c.party_name}</p>
+          <button class="vote-btn" id="vote-${c.id}" data-candidate-id="${c.id}">
+            Vote
+          </button>
+        `;
+        container.appendChild(card);
+
+        // Add click event listener
+        const voteButton = card.querySelector("button");
+        voteButton.addEventListener("click", async () => {
+          await castVote(c.id, c.candidate_name, voteButton);
+        });
+      });
+    }
+
+    async function castVote(candidateId, candidateName, voteButton) {
+      // Prevent multiple simultaneous votes
+      if (isVotingInProgress) {
+        console.log("⚠️ Vote already in progress, ignoring click");
+        return;
+      }
+
+      // Double-check if user has already voted (prevent race conditions)
+      if (hasVoted) {
+        showToast("⚠️ You have already voted!", "error");
+        await loadCandidates(); // Refresh to show disabled state
+        return;
+      }
+
+      // Check if wallet is connected
+      if (!walletConnected) {
+        const walletConnected = await connectToMetaMask();
+        if (!walletConnected) {
+          showToast("Please connect your MetaMask wallet first", "error");
+          return;
+        }
+      }
+
+      // Face verification before voting
+      try {
+        await verifyFace();
+        console.log("✅ Face verification successful");
+      } catch (error) {
+        console.error("❌ Face verification failed:", error);
+        showToast("Face verification failed: " + error.message, "error");
+        isVotingInProgress = false;
+        voteButton.disabled = false;
+        voteButton.textContent = "Vote";
+        voteButton.style.opacity = "1";
+        voteButton.style.cursor = "pointer";
+        return;
+      }
+
+      // Confirm vote
+      const confirmed = confirm(`Are you sure you want to vote for "${candidateName}"?\n\nThis action cannot be undone.`);
+      if (!confirmed) {
+        isVotingInProgress = false;
+        voteButton.disabled = false;
+        voteButton.textContent = "Vote";
+        voteButton.style.opacity = "1";
+        voteButton.style.cursor = "pointer";
+        return;
+      }
+
+      isVotingInProgress = true;
+      voteButton.disabled = true;
+      voteButton.textContent = "Processing...";
+      voteButton.style.opacity = "0.6";
+      voteButton.style.cursor = "not-allowed";
+      
+      // Update transaction status
+      document.getElementById('transactionStatus').innerHTML = `
+        <div class="status-card pending">
+          <p>Transaction pending...</p>
+          <div class="loader"></div>
+        </div>
+      `;
+
+      console.log("🗳️ Casting vote for candidate:", candidateId);
+
+      try {
+        // Step 0: Check blockchain state first (most important check)
+        if (!votingContract) {
+          throw new Error("Voting contract not initialized. Please connect wallet first.");
+        }
+
+        // Verify the contract has code deployed
+        const code = await provider.getCode(CONTRACT_ADDRESS);
+        if (code === '0x' || code === '0x0') {
+          throw new Error(
+            `No contract found at address ${CONTRACT_ADDRESS}.\n\n` +
+            `Possible reasons:\n` +
+            `1. Deployment transaction not confirmed yet (wait a few minutes)\n` +
+            `2. Deployment failed or was reverted\n` +
+            `3. Wrong network (check if deployed to Sepolia Testnet)\n` +
+            `4. Wrong address copied from deployment\n\n` +
+            `Verify on Etherscan:\n` +
+            `https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}\n\n` +
+            `If deployment failed, redeploy the contract and update the address.`
+          );
+        }
+
+        // Verify the contract is actually a Voting contract by testing its functions
+        // Note: We use Supabase for candidates, blockchain only for vote verification
+        let contractVerified = false;
+        try {
+          // Try to call hasVoted() - this verifies the contract works
+          await votingContract.hasVoted(voterEthAddress);
+          contractVerified = true;
+          console.log("✅ Contract verified - ready for voting");
+        } catch (verifyError) {
+          // Contract doesn't match - show helpful error
+          throw new Error(
+            `Contract at address ${CONTRACT_ADDRESS} does not match the Voting contract ABI. ` +
+            `The contract may be a different contract or was deployed with different code. ` +
+            `Please verify the contract address is correct, or redeploy the Voting contract. ` +
+            `Error: ${verifyError.message}`
+          );
+        }
+
+        // Check if user has already voted on the blockchain
+        let blockchainHasVoted = false;
+        try {
+          blockchainHasVoted = await votingContract.hasVoted(voterEthAddress);
+          console.log("🔍 Blockchain hasVoted status:", blockchainHasVoted);
+        } catch (checkError) {
+          // This should not happen if contractVerified is true, but handle it gracefully
+          console.warn("⚠️ Could not check hasVoted status:", checkError.message);
+          throw new Error("Unable to check vote status on blockchain. Please try again or contact support.");
+        }
+        
+        if (blockchainHasVoted) {
+          hasVoted = true;
+          showToast("⚠️ You have already voted on the blockchain!", "error");
+          // Sync database with blockchain state
+          await supabase
+            .from("voters")
+            .update({ has_voted: true })
+            .eq("email", voter.email);
+          await loadCandidates();
+          return;
+        }
+
+        // Step 1: Verify voter hasn't voted (double-check from database)
+        const { data: voterCheck, error: voterCheckError } = await supabase
+          .from("voters")
+          .select("has_voted")
+          .eq("email", voter.email)
+          .single();
+
+        if (voterCheckError) {
+          throw new Error("Failed to verify vote status: " + voterCheckError.message);
+        }
+
+        if (voterCheck.has_voted === true) {
+          hasVoted = true;
+          showToast("⚠️ You have already voted!", "error");
+          await loadCandidates(); // Refresh to show disabled state
+          return;
+        }
+
+        // Step 2: Get candidate from Supabase (single source of truth)
+        const { data: selectedCandidate, error: candidateError } = await supabase
+          .from("candidates")
+          .select("id, candidate_name, party_name")
+          .eq("id", candidateId)
+          .single();
+          
+        if (candidateError || !selectedCandidate) {
+          throw new Error("Selected candidate not found in database.");
+        }
+        
+        // Get all candidates to determine position for contract mapping
+        // (Contract still requires sequential IDs, so we map database position to contract ID)
+        const { data: allCandidates, error: allCandidatesError } = await supabase
+          .from("candidates")
+          .select("id")
+          .order("created_at", { ascending: true });
+          
+        if (allCandidatesError) {
+          throw new Error("Failed to get candidates list: " + allCandidatesError.message);
+        }
+        
+        // Map database candidate to contract candidate ID based on position
+        // This allows any number of Supabase candidates while contract uses sequential IDs
+        const candidatePosition = allCandidates.findIndex(c => c.id === candidateId) + 1;
+        
+        if (candidatePosition <= 0) {
+          throw new Error("Invalid candidate position in database.");
+        }
+        
+        // Use position as contract candidate ID (contract expects sequential IDs starting from 1)
+        const contractCandidateId = candidatePosition;
+        
+        console.log(`🗳️ Voting for "${selectedCandidate.candidate_name}"`);
+        console.log(`📊 Database candidate ID: ${candidateId}`);
+        console.log(`🔗 Contract candidate ID: ${contractCandidateId} (based on position)`);
+        
+        // Step 3: Record vote on blockchain (just for verification, prevents double voting)
+        // Note: We use Supabase as source of truth for candidates
+        // The contract only validates voter hasn't voted and records the vote transaction
+        // Ensure contract has enough candidate slots (add via addCandidate if needed)
+        console.log("🔗 Recording vote on blockchain (candidate ID:", contractCandidateId, ")");
+        
+        // Validate contract has enough candidates for this position
+        try {
+          const contractCandidatesCount = await votingContract.candidatesCount();
+          if (contractCandidateId > parseInt(contractCandidatesCount.toString())) {
+            throw new Error(
+              `Contract doesn't have enough candidate slots. ` +
+              `Need slot ${contractCandidateId} but contract only has ${contractCandidatesCount}. ` +
+              `Add more candidate slots to the contract using addCandidate() function (contract owner only).`
+            );
+          }
+        } catch (countError) {
+          console.warn("⚠️ Could not verify candidate count, proceeding anyway:", countError);
+          // Continue - the vote will fail if invalid candidate ID
+        }
+        
+        const tx = await votingContract.vote(contractCandidateId);
+        
+        // Update transaction status
+        document.getElementById('transactionStatus').innerHTML = `
+          <div class="status-card pending">
+            <p>Transaction submitted! Waiting for confirmation...</p>
+            <p class="tx-hash">TX: ${tx.hash.substring(0, 10)}...${tx.hash.substring(58)}</p>
+            <div class="loader"></div>
+          </div>
+        `;
+        
+        console.log("📝 Transaction sent:", tx.hash);
+        
+        // Wait for transaction confirmation
+        const receipt = await tx.wait();
+        console.log("✅ Transaction confirmed:", receipt);
+        
+        // Step 3: Update Supabase after blockchain confirmation
+        const { error: voteUpdateError } = await supabase
+          .from("votes")
+          .insert({
+            voter_id: voter.id,
+            candidate_id: candidateId,
+            transaction_hash: tx.hash,
+            timestamp: new Date().toISOString()
+          });
+
+        if (voteUpdateError) {
+          console.error("⚠️ Error recording vote in database:", voteUpdateError);
+          // Continue anyway since the blockchain vote was successful
+        }
+
+        // Step 4: Mark voter as voted
+        const { error: voterUpdateError } = await supabase
+          .from("voters")
+          .update({ 
+            has_voted: true,
+            last_vote_tx: tx.hash
+          })
+          .eq("email", voter.email)
+          .eq("has_voted", false); // Only update if hasn't voted (additional safety)
+
+        if (voterUpdateError) {
+          console.error("⚠️ Error updating voter status:", voterUpdateError);
+          // Continue anyway since the blockchain vote was successful
+        }
+
+        // Vote successful
+        hasVoted = true;
+        console.log("✅ Vote cast successfully!");
+        
+        // Update transaction status
+        document.getElementById('transactionStatus').innerHTML = `
+          <div class="status-card success">
+            <p>Vote successfully recorded on blockchain!</p>
+            <p class="tx-hash">TX: ${tx.hash.substring(0, 10)}...${tx.hash.substring(58)}</p>
+          </div>
+        `;
+
+        showToast(`✅ You voted for "${candidateName}" successfully!`, "success");
+
+        // Disable all voting buttons
+        document.querySelectorAll('.vote-btn').forEach(btn => {
+          btn.disabled = true;
+          btn.textContent = "Already Voted";
+          btn.style.opacity = "0.6";
+          btn.style.cursor = "not-allowed";
+        });
+
+        // Automatically logout after successful vote
+        showToast("Vote successful! Logging out...", "success");
+        setTimeout(async () => {
+          await supabase.auth.signOut();
+          window.location.href = "login.html";
+        }, 2000);
+
+      } catch (err) {
+        console.error("❌ Error casting vote:", err);
+        
+        // Format error message for HTML display (convert \n to <br>)
+        const errorMsg = err.message || "Unknown error";
+        const formattedError = errorMsg.replace(/\n/g, '<br>');
+        
+        // Update transaction status with full formatted error
+        document.getElementById('transactionStatus').innerHTML = `
+          <div class="status-card error" style="max-width: 100%; word-wrap: break-word;">
+            <p style="white-space: pre-line; text-align: left; line-height: 1.6;">${errorMsg}</p>
+            <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+              💡 <strong>Tip:</strong> Check the console (F12) for more details
+            </p>
+          </div>
+        `;
+        
+        // Re-enable button on error
+        voteButton.disabled = false;
+        voteButton.textContent = "Vote";
+        voteButton.style.opacity = "1";
+        voteButton.style.cursor = "pointer";
+        isVotingInProgress = false;
+
+        // Show short summary in toast (truncate if too long)
+        const shortError = errorMsg.length > 100 
+          ? errorMsg.substring(0, 100) + "..." 
+          : errorMsg;
+        showToast("❌ Error: " + shortError.split('\n')[0], "error");
+        
+        // Also show alert for detailed error message
+        setTimeout(() => {
+          alert("Voting Error\n\n" + errorMsg);
+        }, 500);
+      }
+    }
+
+    // Toast notification function
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.innerText = message;
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10001;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.3s ease;
+        max-width: 400px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        background-color: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3'};
+      `;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+      }, 100);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Initialize on page load
+    window.addEventListener("DOMContentLoaded", init);
+  </script>
 </head>
 <body>
   <header>
-    <h1>Voting Dashboard 🗳️</h1>
+    <div>Welcome, <span id="userEmail"></span></div>
+    <button id="logoutBtn">Logout</button>
   </header>
 
-  <main>
-    <h2>Select Your Candidate</h2>
-    <div id="candidateList" class="candidate-list">
-      <!-- JS will inject candidates here -->
-    </div>
-  </main>
-
-  <div class="quote">
-    <p>“The ballot is stronger than the bullet.” – Abraham Lincoln</p>
+  <h2>Vote for Your Candidate</h2>
+  
+  <div id="transactionStatus"></div>
+  
+  <div class="candidate-list" id="candidateList">
+    <div style="text-align:center;padding:20px;">🔄 Loading candidates...</div>
   </div>
 
+  <div class="quote">
+    Please vote responsibly. Each voter is allowed only one vote.
+  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-  <script src="js/vote.js"></script>
+  <!-- Face Verification Modal -->
+  <div id="faceVerifyModal" class="face-verify-modal">
+    <div class="face-verify-content">
+      <h2>🔐 Face Verification Required</h2>
+      <p>Please verify your identity to proceed with voting</p>
+      <video id="verifyVideoElement" autoplay playsinline></video>
+      <div id="verifyStatus" class="verify-status info">Initializing camera...</div>
+      <div>
+        <button id="verifyFaceBtn" disabled>Verify Face</button>
+        <button id="cancelVerifyBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
